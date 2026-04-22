@@ -6,11 +6,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import vn.hust.agilechatbotbackend.dto.ConversationResponse;
 import vn.hust.agilechatbotbackend.dto.EscalationRequest;
 import vn.hust.agilechatbotbackend.dto.MessageResponse;
 import vn.hust.agilechatbotbackend.entity.Conversation;
+import vn.hust.agilechatbotbackend.security.CustomUserDetails;
 import vn.hust.agilechatbotbackend.service.ConversationService;
 import vn.hust.agilechatbotbackend.service.MessageService;
 
@@ -28,15 +30,16 @@ public class ConversationController {
     private final MessageService messageService;
 
     /**
-     * List conversations for a user with pagination.
-     * GET /api/v1/conversations?userId=xxx&page=0&size=10
+     * List conversations for the authenticated user with pagination.
+     * GET /api/v1/conversations?page=0&size=10
      */
     @GetMapping
     public ResponseEntity<Page<ConversationResponse>> listConversations(
-            @RequestParam String userId,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
+        String userId = userDetails.getFirebaseUid();
         Pageable pageable = PageRequest.of(page, size);
         Page<ConversationResponse> conversations = conversationService.listByUserId(userId, pageable);
         return ResponseEntity.ok(conversations);

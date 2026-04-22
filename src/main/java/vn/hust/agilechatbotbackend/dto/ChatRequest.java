@@ -25,13 +25,5 @@ public class ChatRequest {
      */
     private String message;
 
-    /**
-     * User ID of the sender.
-     */
-    private String userId;
-
-    /**
-     * Username of the sender.
-     */
-    private String username;
+    // userId and username removed — extracted from SecurityContext (Firebase ID Token)
 }

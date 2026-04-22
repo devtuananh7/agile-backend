@@ -3,12 +3,14 @@ package vn.hust.agilechatbotbackend.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import vn.hust.agilechatbotbackend.dto.ChatRequest;
 import vn.hust.agilechatbotbackend.dto.LlmRequest;
 import vn.hust.agilechatbotbackend.entity.Conversation;
 import vn.hust.agilechatbotbackend.entity.Message;
+import vn.hust.agilechatbotbackend.security.CustomUserDetails;
 import vn.hust.agilechatbotbackend.service.ConversationService;
 import vn.hust.agilechatbotbackend.service.MessageService;
 import vn.hust.agilechatbotbackend.service.llm.LlmRouter;
@@ -34,15 +36,20 @@ public class ChatbotController {
     private final SummaryGenerator summaryGenerator;
 
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter chat(@RequestBody ChatRequest request) {
+    public SseEmitter chat(@RequestBody ChatRequest request,
+                           @AuthenticationPrincipal CustomUserDetails userDetails) {
         SseEmitter emitter = new SseEmitter(120_000L); // 2 min timeout
+
+        // Extract user identity from SecurityContext (Firebase auth)
+        String userId = userDetails.getFirebaseUid();
+        String username = userDetails.getUsername();
 
         // Run the full pipeline in a separate thread to not block the servlet thread
         Thread.startVirtualThread(() -> {
             try {
                 // 1. Session resolution
                 Conversation conversation = conversationService.resolveConversation(
-                        request.getUserId(), request.getUsername(), request.getSessionId());
+                        userId, username, request.getSessionId());
 
                 // Send session_id back as first SSE event
                 emitter.send(SseEmitter.event()
@@ -51,7 +58,7 @@ public class ChatbotController {
                                 + "\"conversationId\":" + conversation.getId() + "}"));
 
                 // 2. Save user message
-                messageService.saveUserMessage(conversation, request.getUserId(), request.getMessage());
+                messageService.saveUserMessage(conversation, userId, request.getMessage());
 
                 // 3. Assemble prompt (system prompt + RAG + context)
                 LlmRequest llmRequest = promptAssembler.assemble(conversation, request.getMessage());

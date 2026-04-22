@@ -40,3 +40,4 @@ out/
 .agent/
 openspec/
 base_knowledge/
+.gradle-home
