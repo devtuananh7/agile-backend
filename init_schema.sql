@@ -125,6 +125,13 @@ CREATE TABLE IF NOT EXISTS knowledge_documents (
 CREATE INDEX IF NOT EXISTS idx_knowledge_documents_category ON knowledge_documents(category);
 CREATE INDEX IF NOT EXISTS idx_knowledge_documents_active ON knowledge_documents(is_active);
 
+-- HNSW vector index for fast cosine similarity search
+-- Recommended over IVFFlat for dynamic data (frequent inserts/deletes)
+CREATE INDEX IF NOT EXISTS idx_knowledge_embedding_hnsw
+    ON knowledge_documents
+    USING hnsw (embedding vector_cosine_ops)
+    WITH (m = 16, ef_construction = 64);
+
 
 -- ================================================================
 -- SEED DATA

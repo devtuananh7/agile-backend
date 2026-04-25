@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.hust.agilechatbotbackend.entity.Message;
+import vn.hust.agilechatbotbackend.entity.enums.SenderRole;
 
 import java.util.List;
 
@@ -19,10 +20,14 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     long countByConversationId(Long conversationId);
 
+    long countByConversationIdAndSenderRole(Long conversationId, SenderRole senderRole);
+
     @Query("SELECT m FROM Message m WHERE m.conversation.id = :conversationId AND m.id > :afterId ORDER BY m.createdAt ASC")
     List<Message> findMessagesAfterSummary(@Param("conversationId") Long conversationId,
                                            @Param("afterId") Long afterId);
 
     @Query("SELECT m FROM Message m WHERE m.conversation.id = :conversationId ORDER BY m.createdAt ASC")
     List<Message> findAllByConversationIdOrderByCreatedAtAsc(@Param("conversationId") Long conversationId);
+
+    void deleteByConversationId(Long conversationId);
 }

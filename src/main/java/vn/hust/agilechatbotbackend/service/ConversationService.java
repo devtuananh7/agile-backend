@@ -10,7 +10,11 @@ import vn.hust.agilechatbotbackend.dto.ConversationResponse;
 import vn.hust.agilechatbotbackend.entity.Conversation;
 import vn.hust.agilechatbotbackend.entity.enums.ConversationStatus;
 import vn.hust.agilechatbotbackend.entity.enums.ConversationType;
+import vn.hust.agilechatbotbackend.entity.enums.SenderRole;
 import vn.hust.agilechatbotbackend.repository.ConversationRepository;
+import vn.hust.agilechatbotbackend.repository.MessageRepository;
+
+import java.time.LocalDateTime;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -21,6 +25,7 @@ import java.util.UUID;
 public class ConversationService {
 
     private final ConversationRepository conversationRepository;
+    private final MessageRepository messageRepository;
 
     /**
      * Create a new BOT conversation.
@@ -96,6 +101,60 @@ public class ConversationService {
 
         // No sessionId → create brand new conversation
         return createConversation(userId, username, null);
+    }
+
+    /**
+     * Create a new ANONYMOUS conversation.
+     */
+    @Transactional
+    public Conversation createAnonymousConversation(UUID sessionId) {
+        Conversation conversation = Conversation.builder()
+                .sessionId(sessionId != null ? sessionId : UUID.randomUUID())
+                .status(ConversationStatus.ACTIVE)
+                .userId("ANONYMOUS")
+                .username("Guest")
+                .doctor("BOT")
+                .type(ConversationType.ANONYMOUS)
+                .promptName("medical_general")
+                .build();
+
+        Conversation saved = conversationRepository.save(conversation);
+        log.info("Created anonymous conversation id={} sessionId={}", saved.getId(), saved.getSessionId());
+        return saved;
+    }
+
+    /**
+     * Resolve an anonymous conversation:
+     * - If sessionId is provided and ACTIVE anonymous conversation exists and younger than 24h → return it
+     * - If conversation is older than 24h or not found → create new
+     * - If no sessionId → create new
+     */
+    @Transactional
+    public Conversation resolveAnonymousConversation(UUID sessionId) {
+        if (sessionId != null) {
+            Optional<Conversation> active = findActiveBySessionId(sessionId);
+            if (active.isPresent()) {
+                Conversation conversation = active.get();
+                // Check if conversation type is ANONYMOUS and not expired (24h)
+                if (conversation.getType() == ConversationType.ANONYMOUS
+                        && conversation.getCreatedAt().isAfter(LocalDateTime.now().minusHours(24))) {
+                    log.debug("Resumed anonymous conversation id={} for sessionId={}",
+                            conversation.getId(), sessionId);
+                    return conversation;
+                }
+                // Expired or wrong type → create new
+                log.info("Anonymous session {} expired or invalid. Creating new.", sessionId);
+            }
+        }
+        return createAnonymousConversation(sessionId);
+    }
+
+    /**
+     * Count user messages (sender_role=USER) in a conversation.
+     * Used for anonymous message limit check.
+     */
+    public long countUserMessages(Long conversationId) {
+        return messageRepository.countByConversationIdAndSenderRole(conversationId, SenderRole.USER);
     }
 
     /**

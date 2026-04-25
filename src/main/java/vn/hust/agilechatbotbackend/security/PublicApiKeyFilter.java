@@ -54,6 +54,8 @@ public class PublicApiKeyFilter extends OncePerRequestFilter {
             return;
         }
 
+        log.info("API key check — received: [{}] (len={}), configured: [{}] (len={})",
+                apiKey, apiKey.length(), configuredApiKey, configuredApiKey.length());
         if (!apiKey.equals(configuredApiKey)) {
             log.warn("Invalid API key for public endpoint: {}", requestPath);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

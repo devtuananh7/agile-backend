@@ -28,7 +28,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
 
         // Only wrap API requests, skip static resources
         if (request.getRequestURI().startsWith("/api/")) {
-            ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request);
+            ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request, 10240);
             filterChain.doFilter(wrappedRequest, response);
         } else {
             filterChain.doFilter(request, response);

@@ -12,6 +12,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import vn.hust.agilechatbotbackend.security.FirebaseAuthFilter;
+import vn.hust.agilechatbotbackend.security.PublicApiKeyFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -19,6 +20,7 @@ import vn.hust.agilechatbotbackend.security.FirebaseAuthFilter;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final PublicApiKeyFilter publicApiKeyFilter;
     private final FirebaseAuthFilter firebaseAuthFilter;
 
     @Bean
@@ -30,10 +32,14 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                 .requestMatchers("/error").permitAll()
+                .requestMatchers("/api/v1/public/**").permitAll()
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             );
 
+        // PublicApiKeyFilter runs first (handles /api/v1/public/** API key check)
+        // FirebaseAuthFilter runs second (handles authenticated endpoints)
+        http.addFilterBefore(publicApiKeyFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(firebaseAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

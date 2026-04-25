@@ -6,7 +6,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import vn.hust.agilechatbotbackend.entity.Conversation;
 import vn.hust.agilechatbotbackend.entity.enums.ConversationStatus;
+import vn.hust.agilechatbotbackend.entity.enums.ConversationType;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,4 +23,8 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
     Page<Conversation> findByUserIdOrderByUpdatedAtDesc(String userId, Pageable pageable);
 
     long countByRefId(Long refId);
+
+    List<Conversation> findByTypeAndCreatedAtBefore(ConversationType type, LocalDateTime before);
+
+    void deleteByTypeAndCreatedAtBefore(ConversationType type, LocalDateTime before);
 }
